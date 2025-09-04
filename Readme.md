@@ -1,6 +1,6 @@
 # 2025-2C-VA
 Repositorio de TPs de la materia Visión Artificial
-### Grupo nº 6 - Integrantes
+### Grupo Nº 6 - Integrantes
 
 * Couzo, Eduardo
 * Meza, Julian
