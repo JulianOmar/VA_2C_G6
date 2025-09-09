@@ -1,6 +1,9 @@
 
 import cv2 as cv
+import numpy as np
 import os
+
+referencias = {}
 
 if os.name == "nt":
   webcam = cv.VideoCapture(0, cv.CAP_DSHOW) # WINDOWS
@@ -11,9 +14,10 @@ frame_count = 0
 skip = 10
 
 cv.namedWindow("Manual")
-cv.createTrackbar("Umbral", "Manual", 127, 255, lambda x: None)
+cv.createTrackbar("Umbral", "Manual", 79, 255, lambda x: None)
 cv.createTrackbar("Morfologico", "Manual", 3, 20, lambda x: None)
-cv.createTrackbar("Area", "Manual", 500, 5000, lambda x: None)
+cv.createTrackbar("Area", "Manual", 23, 5000, lambda x: None)
+cv.createTrackbar("Umbral_Match", "Manual", 23, 100, lambda x: None)
 
 def umbral_manual(frame):
   t = cv.getTrackbarPos("Umbral", "Manual")
@@ -38,7 +42,7 @@ def operaciones_morfologicas(frame):
 
   return op_clean
 
-def buscar_contorno(frame):
+def buscar_contornos(frame):
   contornos, _ = cv.findContours(frame, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
   min_area = cv.getTrackbarPos("Area", "Manual")
   contornos_filtrados = [cnt for cnt in contornos if cv.contourArea(cnt) > min_area]
@@ -59,20 +63,50 @@ while True:
 
   frame_morfo = operaciones_morfologicas(frame_thresold)
 
-  contornos = buscar_contorno(frame_morfo)
+  contornos = buscar_contornos(frame_morfo)
+  
+  print(len(contornos))
 
   for contorno in contornos:
     cv.drawContours(frame, [contorno], -1, (0,255,0), 2)
   
     x, y, w, h = cv.boundingRect(contorno)
     cv.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
-
-    cv.putText(frame, f"{contorno}", (x, y-10),
-                cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
+    umbral_match = cv.getTrackbarPos("Umbral_Match", "Manual")
+    if referencias:
+      momentos = cv.moments(contorno)
+      nuevo_hu_moments = cv.HuMoments(momentos).flatten()
+      mejor_coincidencia = None
+      menor_distancia = float('inf')
+      for nombre, hu_ref in referencias.items():
+        distancia = cv.matchShapes(nuevo_hu_moments, hu_ref, cv.CONTOURS_MATCH_I1, 0.0)
+        if distancia < menor_distancia:
+            menor_distancia = distancia
+            mejor_coincidencia = nombre
+            
+      if menor_distancia < 0.1:
+        cv.putText(frame, f"{mejor_coincidencia}", (x, y-10),
+                  cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
+      else:
+        cv.putText(frame, "Desconocido", (x, y-10),
+                  cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
+    else:
+      cv.putText(frame, "Sin información", (x, y-10),
+                  cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
 
   cv.imshow("Manual", frame)
   
-  if cv.waitKey(30) & 0xFF == ord('q'):
+  key = cv.waitKey(30) & 0xFF
+
+  if key == ord('c') and contornos:
+    c = contornos[0]
+    momentos = cv.moments(c)
+    hu_moments = cv.HuMoments(momentos).flatten()
+    nombre = input("Nombre de esta forma: ")
+    referencias[nombre] = hu_moments.copy()
+    print(f"Guardado contorno de referencia: {nombre}")
+    print(f"Momentos de Hu: {hu_moments}")
+  elif key == ord('q'):
     break
 
 webcam.release()
