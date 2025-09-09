@@ -72,18 +72,18 @@ while True:
   
     x, y, w, h = cv.boundingRect(contorno)
     cv.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+
     umbral_match = cv.getTrackbarPos("Umbral_Match", "Manual")
+
     if referencias:
-      momentos = cv.moments(contorno)
-      nuevo_hu_moments = cv.HuMoments(momentos).flatten()
       mejor_coincidencia = None
       menor_distancia = float('inf')
-      for nombre, hu_ref in referencias.items():
-        distancia = cv.matchShapes(nuevo_hu_moments, hu_ref, cv.CONTOURS_MATCH_I1, 0.0)
+      for nombre, contorno_ref in referencias.items():
+        distancia = cv.matchShapes(contorno, contorno_ref, cv.CONTOURS_MATCH_I1, 0.0)
         if distancia < menor_distancia:
             menor_distancia = distancia
             mejor_coincidencia = nombre
-            
+
       if menor_distancia < 0.1:
         cv.putText(frame, f"{mejor_coincidencia}", (x, y-10),
                   cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
@@ -100,12 +100,10 @@ while True:
 
   if key == ord('c') and contornos:
     c = contornos[0]
-    momentos = cv.moments(c)
-    hu_moments = cv.HuMoments(momentos).flatten()
     nombre = input("Nombre de esta forma: ")
-    referencias[nombre] = hu_moments.copy()
+    referencias[nombre] = c.copy()
     print(f"Guardado contorno de referencia: {nombre}")
-    print(f"Momentos de Hu: {hu_moments}")
+    print(f"Momentos de Hu: {c}")
   elif key == ord('q'):
     break
 
