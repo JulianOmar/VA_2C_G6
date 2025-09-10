@@ -2,26 +2,26 @@
 import cv2 as cv
 import numpy as np
 import os
+import csv
 
-referencias = {}
+C = []
+X = []
+Y = []
 
 if os.name == "nt":
   webcam = cv.VideoCapture(0, cv.CAP_DSHOW) # WINDOWS
 elif os.name == "posix":
   webcam = cv.VideoCapture(0) # LINUX / OS
 
-frame_count = 0
-skip = 10
-
 cv.namedWindow("Manual")
-cv.createTrackbar("Umbral", "Manual", 79, 255, lambda x: None)
+cv.createTrackbar("Umbral", "Manual", 40, 255, lambda x: None)
 cv.createTrackbar("Morfologico", "Manual", 3, 20, lambda x: None)
-cv.createTrackbar("Area", "Manual", 23, 5000, lambda x: None)
-cv.createTrackbar("Umbral_Match", "Manual", 23, 100, lambda x: None)
+cv.createTrackbar("Area", "Manual", 300, 5000, lambda x: None)
+cv.createTrackbar("Umbral_Match", "Manual", 0, 100, lambda x: None)
 
 def umbral_manual(frame):
   t = cv.getTrackbarPos("Umbral", "Manual")
-  _, th_manual = cv.threshold(gray, t, 255, cv.THRESH_BINARY_INV)
+  _, th_manual = cv.threshold(frame, t, 255, cv.THRESH_BINARY_INV)
   return th_manual
 
 def umbral_otsu(frame):
@@ -48,11 +48,13 @@ def buscar_contornos(frame):
   contornos_filtrados = [cnt for cnt in contornos if cv.contourArea(cnt) > min_area]
   return contornos_filtrados
 
-while True:
-  frame_count += 1
-  if frame_count % skip != 0:
-    continue
+def guardar_dataset():
+  with open('data.csv', 'a', newline='') as file:
+    writer = csv.writer(file)
+    for x_row, y_val in zip(X, Y):
+        writer.writerow(x_row + [y_val])
 
+while True:
   ret, frame = webcam.read()
 
   if not ret: break
@@ -68,44 +70,49 @@ while True:
   print(len(contornos))
 
   for contorno in contornos:
-    cv.drawContours(frame, [contorno], -1, (0,255,0), 2)
+    #cv.drawContours(frame, [contorno], -1, (0,255,0), 2)
   
     x, y, w, h = cv.boundingRect(contorno)
-    cv.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
 
-    umbral_match = cv.getTrackbarPos("Umbral_Match", "Manual")
+    umbral_match = cv.getTrackbarPos("Umbral_Match", "Manual") / 100
 
-    if referencias:
+    if C:
       mejor_coincidencia = None
       menor_distancia = float('inf')
-      for nombre, contorno_ref in referencias.items():
+      for index, contorno_ref in enumerate(C):
         distancia = cv.matchShapes(contorno, contorno_ref, cv.CONTOURS_MATCH_I1, 0.0)
         if distancia < menor_distancia:
             menor_distancia = distancia
-            mejor_coincidencia = nombre
+            mejor_coincidencia = Y[index]
 
-      if menor_distancia < 0.1:
+      if menor_distancia < umbral_match:
         cv.putText(frame, f"{mejor_coincidencia}", (x, y-10),
-                  cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
+                  cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
+        cv.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
       else:
         cv.putText(frame, "Desconocido", (x, y-10),
-                  cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
+                  cv.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 1)
+        cv.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
     else:
-      cv.putText(frame, "Sin información", (x, y-10),
+      cv.putText(frame, "Sin informacion", (x, y-10),
                   cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
 
+  cv.imshow("Debug", frame_morfo)
   cv.imshow("Manual", frame)
   
   key = cv.waitKey(30) & 0xFF
 
   if key == ord('c') and contornos:
-    c = contornos[0]
-    nombre = input("Nombre de esta forma: ")
-    referencias[nombre] = c.copy()
-    print(f"Guardado contorno de referencia: {nombre}")
-    print(f"Momentos de Hu: {c}")
+    nombre = input("Ingrese etiqueta de esta forma: ")
+    for index, cnt in enumerate(contornos):
+      C.append(cnt.copy())
+      X.append(cv.HuMoments(cv.moments(cnt)).flatten().tolist())
+      Y.append(nombre)
+      print(f"Guardado contorno de referencia: {nombre}")
   elif key == ord('q'):
     break
 
+
+guardar_dataset()
 webcam.release()
 cv.destroyAllWindows()
