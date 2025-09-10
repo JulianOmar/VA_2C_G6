@@ -4,7 +4,7 @@ import numpy as np
 import os
 import csv
 
-C = []
+C = [] # PASAR A IMAGENES, UNA IMAGEN POR FIGURA
 X = []
 Y = []
 
@@ -76,43 +76,43 @@ while True:
 
     umbral_match = cv.getTrackbarPos("Umbral_Match", "Manual") / 100
 
-    if C:
-      mejor_coincidencia = None
-      menor_distancia = float('inf')
-      for index, contorno_ref in enumerate(C):
-        distancia = cv.matchShapes(contorno, contorno_ref, cv.CONTOURS_MATCH_I1, 0.0)
-        if distancia < menor_distancia:
-            menor_distancia = distancia
-            mejor_coincidencia = Y[index]
+    #if C:
+    mejor_coincidencia = None
+    menor_distancia = float('inf')
+    for index, contorno_ref in enumerate(C):
+      distancia = cv.matchShapes(contorno, contorno_ref, cv.CONTOURS_MATCH_I1, 0.0)
+      if distancia < menor_distancia:
+          menor_distancia = distancia
+          mejor_coincidencia = Y[index]
 
-      if menor_distancia < umbral_match:
-        cv.putText(frame, f"{mejor_coincidencia}", (x, y-10),
-                  cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
-        cv.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-      else:
-        cv.putText(frame, "Desconocido", (x, y-10),
-                  cv.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 1)
-        cv.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+    if menor_distancia < umbral_match:
+      cv.putText(frame, f"{mejor_coincidencia}", (x, y-10),
+                cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
+      cv.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
     else:
-      cv.putText(frame, "Sin informacion", (x, y-10),
-                  cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
+      cv.putText(frame, "Desconocido", (x, y-10),
+                cv.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 1)
+      cv.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+    #else:
+    #  cv.putText(frame, "Sin informacion", (x, y-10),
+    #              cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
 
   cv.imshow("Debug", frame_morfo)
   cv.imshow("Manual", frame)
   
   key = cv.waitKey(30) & 0xFF
 
-  if key == ord('c') and contornos:
-    nombre = input("Ingrese etiqueta de esta forma: ")
-    for index, cnt in enumerate(contornos):
-      C.append(cnt.copy())
-      X.append(cv.HuMoments(cv.moments(cnt)).flatten().tolist())
-      Y.append(nombre)
-      print(f"Guardado contorno de referencia: {nombre}")
-  elif key == ord('q'):
+  #if key == ord('c') and contornos:
+  #  nombre = input("Ingrese etiqueta de esta forma: ")
+  #  for index, cnt in enumerate(contornos):
+  #    C.append(cnt.copy())
+  #    X.append(cv.HuMoments(cv.moments(cnt)).flatten().tolist())
+  #    Y.append(nombre)
+  #    print(f"Guardado contorno de referencia: {nombre}")
+  if key == ord('q'):
     break
 
 
-guardar_dataset()
+#guardar_dataset()
 webcam.release()
 cv.destroyAllWindows()
