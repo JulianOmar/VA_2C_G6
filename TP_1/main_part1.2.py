@@ -8,7 +8,7 @@ ancho=800
 alto=800
 
 area_minima=100*100
-area_maxima=600*600
+area_maxima=700*700
 
 def filtrarContornos(contornos,area_minima,area_maxima):
   contornos_filtrados=[]
@@ -131,6 +131,8 @@ def guardar_dataset():
         writer.writerow(x_row + [y_val])
 
 while True:
+  X=[]
+  Y=[]
   ret, frame = webcam.read()
 
   if not ret: break
@@ -159,10 +161,22 @@ while True:
       cv.putText(frame, f"{mejor_coincidencia}", (x, y-10),
                 cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
       cv.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+      momentos = cv.moments(contorno)
+      hu_momentos = cv.HuMoments(momentos).flatten().tolist()
+      X.append(hu_momentos)
+      Y.append(mejor_coincidencia)
     else:
       cv.putText(frame, "Desconocido", (x, y-10),
                 cv.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 1)
       cv.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+      momentos = cv.moments(contorno)
+      hu_momentos = cv.HuMoments(momentos).flatten().tolist()
+      X.append(hu_momentos)
+      Y.append("Desconocido")
+
+
+    
+
     #else:
     #  cv.putText(frame, "Sin informacion", (x, y-10),
     #              cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
@@ -171,7 +185,8 @@ while True:
   cv.imshow("Manual", frame)
   
   key = cv.waitKey(30) & 0xFF
-
+  if key == ord('g'):
+     guardar_dataset()
   if key == ord('q'):
     break
 
