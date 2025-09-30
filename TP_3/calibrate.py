@@ -24,8 +24,8 @@ objPoints = []
 chessboardPointCloud3D = np.zeros((chessBoard[0]*chessBoard[1],3), np.float32)
 chessboardPointCloud3D[:,:2] = np.mgrid[0:chessBoard[0],0:chessBoard[1]].T.reshape(-1,2)
 
-imChessboard = cv.imread("./assets/Chessboard_6x9.png")#, flags = cv.IMREAD_GRAYSCALE)
-cv.imshow("Tablero", imChessboard) # Opens an empty window?
+#imChessboard = cv.imread("./assets/Chessboard_6x9.png")#, flags = cv.IMREAD_GRAYSCALE)
+#cv.imshow("Tablero", imChessboard) # Opens an empty window?
 
 cam = cv.VideoCapture(3)
 width = cam.get(cv.CAP_PROP_FRAME_WIDTH)
