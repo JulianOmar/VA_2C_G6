@@ -67,7 +67,7 @@ class DetectionAnnotator:
             dx2, dy2 = int(x2 * self.scale), int(y2 * self.scale)
             cv2.rectangle(temp_disp, (dx1, dy1), (dx2, dy2), (0, 255, 0), 2)
             cv2.putText(temp_disp, f"{class_id}:{self.class_names[class_id]}",
-                       (dx1, dy1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                       (dx1, dy1+25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.imshow('Annotator', temp_disp)
     
     def convert_to_yolo_format(self, bbox, img_width, img_height):
@@ -91,6 +91,37 @@ class DetectionAnnotator:
                 class_id, x_center, y_center, width, height = self.convert_to_yolo_format(bbox, img_shape[1], img_shape[0])
                 f.write(f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n")
     
+    def load_annotations(self, image_filename, img_shape):
+        label_filename = os.path.splitext(image_filename)[0] + '.txt'
+        label_path = os.path.join(self.labels_dir, label_filename)
+        if not os.path.exists(label_path):
+            return []
+
+        img_h, img_w = img_shape[:2]
+        annotations = []
+        with open(label_path, 'r') as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) != 5:
+                    continue
+                class_id = int(parts[0])
+                if class_id >= len(self.class_names):
+                    continue
+                x_center, y_center, width, height = map(float, parts[1:])
+                box_w = width * img_w
+                box_h = height * img_h
+                x1 = int((x_center * img_w) - box_w / 2)
+                y1 = int((y_center * img_h) - box_h / 2)
+                x2 = int((x_center * img_w) + box_w / 2)
+                y2 = int((y_center * img_h) + box_h / 2)
+                x1 = max(0, min(img_w - 1, x1))
+                y1 = max(0, min(img_h - 1, y1))
+                x2 = max(0, min(img_w - 1, x2))
+                y2 = max(0, min(img_h - 1, y2))
+                if x2 > x1 and y2 > y1:
+                    annotations.append((x1, y1, x2, y2, class_id))
+        return annotations
+
     def annotate_images(self):
         """Herramienta interactiva de anotación"""
         image_files = [f for f in os.listdir(self.images_dir)
@@ -103,6 +134,7 @@ class DetectionAnnotator:
         print("+: Siguiente clase")
         print("-: Clase anterior")
         print("S: Guardar y siguiente imagen")
+        print("N: Siguiente imagen sin guardar")
         print("D: Eliminar última anotación")
         print("L: Listar todas las clases")
         print("Q: Salir")
@@ -112,8 +144,9 @@ class DetectionAnnotator:
             image_path = os.path.join(self.images_dir, img_file)
             self.current_image = cv2.imread(image_path)
 
-            if self.current_image is None:
-                continue
+            if self.current_image is None: continue
+
+            self.annotations = self.load_annotations(img_file, self.current_image.shape)
 
             # Preparar ventana escalada y callback
             cv2.namedWindow('Annotator', cv2.WINDOW_NORMAL)
@@ -140,13 +173,6 @@ class DetectionAnnotator:
                         self.current_class = class_idx
                         print(f"Clase cambiada a: {self.current_class} - {self.class_names[self.current_class]}")
 
-                # Cambiar clase con teclas a-z (clases 10-35)
-                elif ord('a') <= key <= ord('z'):
-                    class_idx = (key - ord('a')) + 10
-                    if class_idx < len(self.class_names):
-                        self.current_class = class_idx
-                        print(f"Clase cambiada a: {self.current_class} - {self.class_names[self.current_class]}")
-
                 # Siguiente clase
                 elif key == ord('+') or key == ord('='):
                     self.current_class = (self.current_class + 1) % len(self.class_names)
@@ -164,12 +190,13 @@ class DetectionAnnotator:
                         print(f"  {i}: {name}")
 
                 # Guardar y siguiente
-                elif key == ord('S'):
+                elif key in (ord('S'), ord('s')):
                     self.save_annotations(img_file, self.current_image.shape)
                     print(f"Guardadas {len(self.annotations)} anotaciones")
                     break
-                elif key == ord('N'):
-                    break;
+
+                elif key in (ord('n'), ord('N')):
+                    break
 
                 # Eliminar última anotación
                 elif key == ord('D'):
@@ -178,14 +205,22 @@ class DetectionAnnotator:
                         print("Última anotación eliminada")
 
                 # Salir
-                elif key == ord('Q'):
+                elif key in (ord('q'), ord('Q')):
                     cv2.destroyAllWindows()
                     return
+                
+                # Cambiar clase con teclas a-z (clases 10-35)
+                elif ord('a') <= key <= ord('z'):
+                    class_idx = (key - ord('a')) + 10
+                    if class_idx < len(self.class_names):
+                        self.current_class = class_idx
+                        print(f"Clase cambiada a: {self.current_class} - {self.class_names[self.current_class]}")
+
 
             cv2.destroyAllWindows()
 
 CLASS_NAMES = [
-    'Asado', 'Vacio', 'Matambre',   
+    'Asado', 'Vacio', 'Matambre', 'Entrania'
 ]
 
 # Crear directorios si no existen
@@ -197,4 +232,11 @@ annotator = DetectionAnnotator(
     labels_dir='carneDataset/labels/val',
     class_names=CLASS_NAMES
 )
+
+#annotator = DetectionAnnotator(
+#    images_dir='carneDataset/images/train',
+#    labels_dir='carneDataset/labels/train',
+#    class_names=CLASS_NAMES
+#)
+
 annotator.annotate_images()
