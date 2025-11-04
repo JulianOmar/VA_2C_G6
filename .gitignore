@@ -7,6 +7,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Dataset
+*.pt
+carneDataset/
+
 # Distribution / packaging
 .Python
 .conda/
