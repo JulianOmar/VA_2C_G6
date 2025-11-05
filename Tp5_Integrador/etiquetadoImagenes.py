@@ -220,23 +220,23 @@ class DetectionAnnotator:
             cv2.destroyAllWindows()
 
 CLASS_NAMES = [
-    'Asado', 'Vacio', 'Matambre', 'Entrania'
+    'Asado', 'Vacio', 'Matambre', 'Entrania', 'Paleta'
 ]
 
 # Crear directorios si no existen
 os.makedirs('carneDataset/images/val', exist_ok=True)
 os.makedirs('carneDataset/labels/val', exist_ok=True)
 
-annotator = DetectionAnnotator(
-    images_dir='carneDataset/images/val',
-    labels_dir='carneDataset/labels/val',
-    class_names=CLASS_NAMES
-)
-
 #annotator = DetectionAnnotator(
-#    images_dir='carneDataset/images/train',
-#    labels_dir='carneDataset/labels/train',
+#    images_dir='carneDataset/images/val',
+#    labels_dir='carneDataset/labels/val',
 #    class_names=CLASS_NAMES
 #)
+
+annotator = DetectionAnnotator(
+    images_dir='carneDataset/images/train',
+    labels_dir='carneDataset/labels/train',
+    class_names=CLASS_NAMES
+)
 
 annotator.annotate_images()
